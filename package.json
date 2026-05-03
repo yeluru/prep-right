@@ -1,6 +1,6 @@
 {
   "name": "rolefit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Job fit analysis + interview prep guide generator. /rolefit <job-url> with attached resume.",
   "bin": {
     "rolefit": "bin/rolefit.js"
