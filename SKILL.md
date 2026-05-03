@@ -2,14 +2,15 @@
 name: rolefit
 description: >
   Generates a comprehensive, personalized interview preparation guide as a richly
-  formatted Word document (.docx) from a job posting URL and an attached resume.
-  Invoke with: /rolefit followed by a job posting URL, with your resume file attached.
+  formatted Word document (.docx) from a job description and an attached resume.
+  Invoke with: /rolefit followed by a job posting URL or pasted job description text,
+  with your resume file attached (or resume text pasted inline).
   Use this skill whenever the user types /rolefit, pastes a job posting URL alongside
   a resume, asks "how do I fit for this role", wants an honest gap analysis against a
   JD, needs interview prep for a specific role, or says anything like "am I a good fit
   for this job", "help me prep for this interview", or "I have an interview at
   a company and want to know if I am competitive". Always trigger proactively when a
-  job URL and resume file appear together in the same message. The output is a 40-60
+  job description and resume appear together in the same message. The output is a 40-60
   page Word document with live company research, honest fit scoring, gap briefings,
   CERT story cards, mock Q&A, a 30-60-90 day vision, and a one-page interview day
   reference card.
@@ -19,26 +20,44 @@ description: >
 
 ## Invocation
 
-Users trigger this skill with a slash command:
+Users trigger this skill with a slash command. Three supported input modes:
 
+**Mode 1 — URL + attached resume (most common)**
 ```
 /rolefit https://company.com/careers/role-title
 [attached: resume.pdf  or  resume.docx]
 ```
 
-Both a URL and an attached resume are required. If either is missing, ask for it
-before proceeding.
+**Mode 2 — Pasted JD text + attached resume**
+```
+/rolefit
+We are looking for a Senior Engineer with 5+ years of Go experience...
+[attached: resume.pdf]
+```
+
+**Mode 3 — URL + pasted resume text**
+```
+/rolefit https://company.com/careers/role-title
+[paste resume text inline if no file is available]
+```
+
+If both a job description (URL or text) and a resume (file or text) are present in
+the message, begin immediately. If either is missing, ask for it before proceeding.
 
 ---
 
 ## Step 1: Extract Inputs
 
-**Job description — from the URL:**
+**Job description — from URL or inline text:**
 
-Use web_fetch to retrieve the job posting page. Strip navigation, footers, and
-cookie banners. Keep the role title, responsibilities, qualifications, and any
-"about the company" content on that page. If the URL returns a login wall or
-redirect, tell the user and ask them to paste the JD text directly instead.
+If the user provided a URL, use web_fetch to retrieve the job posting page. Strip
+navigation, footers, and cookie banners. Keep the role title, responsibilities,
+qualifications, and any "about the company" content on that page.
+
+If the URL returns a login wall or redirect, tell the user and ask them to paste the
+JD text directly instead.
+
+If the user pasted the JD text directly (no URL), use it as-is. No fetching needed.
 
 Common JD URL patterns to handle gracefully:
 - LinkedIn (linkedin.com/jobs/view/...) — fetch and parse the structured content
@@ -46,9 +65,9 @@ Common JD URL patterns to handle gracefully:
 - Lever (jobs.lever.co/...) — similar clean structure
 - Company career pages — vary widely; extract the longest continuous text block
 
-**Resume — from the attached file:**
+**Resume — from attached file or inline text:**
 
-The user's resume is attached to the message. Claude can read PDF files natively.
+If the user attached a file, read it. Claude can read PDF files natively.
 For DOCX files, use the bash tool to extract text:
 
 ```bash
@@ -60,8 +79,10 @@ print('\n'.join(p.text for p in doc.paragraphs if p.text.strip()))
 " /path/to/resume.docx
 ```
 
-If no file is attached, ask: "Please attach your resume as a PDF or Word doc and
-I'll get started."
+If the user pasted resume text directly (no file attachment), use it as-is.
+
+If no resume is provided at all, ask: "Please attach your resume as a PDF or Word doc
+(or paste the text) and I'll get started."
 
 ---
 
