@@ -15,6 +15,7 @@ import { gatherInputs } from '../lib/input.js';
 import { parseArgs } from 'node:util';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { createInterface } from 'node:readline';
 
 const { values: args } = parseArgs({
   options: {
@@ -25,7 +26,7 @@ const { values: args } = parseArgs({
     model:   { type: 'string',  short: 'm', default: 'claude-opus-4-6' },
     help:    { type: 'boolean', short: 'h', default: false },
   },
-  allowPositionals: true,  // allow: npx rolefit <url>
+  allowPositionals: true,
   tokens: true,
 });
 
@@ -52,14 +53,15 @@ OPTIONS
   -h, --help             Show this help
 
 ENVIRONMENT
-  ANTHROPIC_API_KEY      Required — your Anthropic API key
+  ANTHROPIC_API_KEY      Optional — only needed when running outside the Claude app.
+                         If not set, you will be prompted to enter it.
 
 EXAMPLES
   npx rolefit --jd https://jobs.stripe.com/roles/1234 --resume resume.pdf
   npx rolefit --jd jd.txt --resume cv.docx --quick
   npx rolefit --jd https://linkedin.com/jobs/view/... --resume resume.pdf --out stripe.docx
 
-SLASH COMMAND (Claude app / Cowork)
+SLASH COMMAND (Claude app / Claude Code — no API key needed)
   /rolefit https://jobs.stripe.com/roles/1234
   [attach your resume.pdf]
 
@@ -77,11 +79,34 @@ WHAT YOU GET
   process.exit(0);
 }
 
+// ── API key handling ─────────────────────────────────────────────────────────
+// If running inside Claude Code or the Claude app, the key is never needed —
+// use the /rolefit slash command instead. For standalone CLI use, we prompt.
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('\nError: ANTHROPIC_API_KEY is not set.');
-  console.error('Get your key at https://console.anthropic.com\n');
-  process.exit(1);
+  const rl = createInterface({ input: process.stdin, output: process.stderr });
+
+  const promptLine = (q) => new Promise(res => rl.question(q, ans => { rl.close(); res(ans.trim()); }));
+
+  console.error('');
+  console.error('  ℹ️  Running outside the Claude app.');
+  console.error('     If you have Claude Code installed, quit this and run:');
+  console.error('       /rolefit <job-url>  (attach your resume)');
+  console.error('');
+  console.error('     Otherwise, enter your Anthropic API key to continue.');
+  console.error('     Get one free at https://console.anthropic.com');
+  console.error('');
+
+  const key = await promptLine('  Anthropic API key (or press Enter to cancel): ');
+
+  if (!key) {
+    console.error('\n  Cancelled. No API key provided.\n');
+    process.exit(0);
+  }
+
+  process.env.ANTHROPIC_API_KEY = key;
+  console.error('');
 }
+// ─────────────────────────────────────────────────────────────────────────────
 
 const jdArg = args.jd || jdPositional || null;
 const resumeArg = args.resume || null;
