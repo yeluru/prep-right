@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, StopCircle, RotateCcw, ChevronDown, ChevronRight,
@@ -137,6 +137,29 @@ function SectionNav({ sections, activeIndex }) {
 
 export default function ResultsView({ markdown, isGenerating, progress, error, onStop, onReset }) {
   const sections = useMemo(() => parseSections(markdown), [markdown]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const observerRef = useRef(null);
+
+  useEffect(() => {
+    observerRef.current?.disconnect();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const idx = parseInt(entry.target.id.replace('section-', ''), 10);
+            if (!isNaN(idx)) setActiveIndex(idx);
+          }
+        }
+      },
+      { rootMargin: '-20% 0px -60% 0px', threshold: 0 }
+    );
+    observerRef.current = observer;
+    sections.forEach((_, i) => {
+      const el = document.getElementById(`section-${i}`);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [sections]);
 
   return (
     <section className="pt-20 pb-16 px-4 sm:px-6">
@@ -224,7 +247,7 @@ export default function ResultsView({ markdown, isGenerating, progress, error, o
         )}
 
         {/* Section navigation */}
-        {sections.length > 2 && <SectionNav sections={sections} />}
+        {sections.length > 2 && <SectionNav sections={sections} activeIndex={activeIndex} />}
       </div>
     </section>
   );

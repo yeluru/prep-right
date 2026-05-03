@@ -29,7 +29,12 @@ let masterPrompt;
 try {
   masterPrompt = readFileSync(join(__dirname, '..', '..', 'references', 'master-prompt.md'), 'utf8');
 } catch {
-  masterPrompt = readFileSync(join(__dirname, '..', 'prompt.md'), 'utf8');
+  try {
+    masterPrompt = readFileSync(join(__dirname, '..', 'prompt.md'), 'utf8');
+  } catch {
+    console.error('Could not load master prompt from either references/master-prompt.md or prompt.md');
+    process.exit(1);
+  }
 }
 
 // ── Resume text extraction ────────────────────────────────────────────────────
@@ -192,9 +197,26 @@ app.post('/api/generate', async (req, res) => {
 
 // ── Fetch job description from URL ────────────────────────────────────────────
 
+function isUrlAllowed(urlStr) {
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return false;
+    if (host.startsWith('10.') || host.startsWith('192.168.')) return false;
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+    if (host === '169.254.169.254' || host.startsWith('169.254.')) return false;
+    if (host.endsWith('.internal') || host.endsWith('.local')) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 app.post('/api/fetch-jd', async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'URL is required' });
+  if (!isUrlAllowed(url)) return res.status(400).json({ error: 'Invalid or disallowed URL' });
 
   try {
     const response = await fetch(url, {
