@@ -1,298 +1,231 @@
-# RoleFit (PrepRight)
+# RoleFit
 
-**Turn a job posting URL and your resume into a 40-60 page personalized interview prep guide — in one command.**
+**Job fit analysis + interview prep guide — from a job URL and your resume.**
 
-Paste a job posting URL, attach your resume, and get a richly formatted Word document that researches the company live, scores your fit honestly, tells you bluntly where your gaps are, and hands you a one-page reference card to read five minutes before you walk in.
+Paste a job posting URL, attach your resume, get a 40-60 page Word document that tells you honestly how competitive you are, exactly where your gaps are, and how to walk in ready. Works for any role — engineering, product, finance, design, operations — at any level.
 
-Works for any role — engineering, product, finance, marketing, operations, data, design — at any level from mid-career through the C-suite. Tested across engineering leadership, product management, financial services, and federal government.
-
-> Built and maintained by [Ravi Yeluru](https://www.linkedin.com/in/raviyeluru).
+> Built on top of the [PrepRight prompt](./references/master-prompt.md) by [Ravi Yeluru](https://www.linkedin.com/in/raviyeluru).
 
 ---
 
 ## Quick Start
 
-**Claude app — slash command (easiest)**
-```
-/rolefit https://jobs.stripe.com/roles/director-of-engineering
-```
-*(attach your resume.pdf or resume.docx to the same message)*
-
-**Terminal — npx**
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-npx rolefit --jd https://jobs.stripe.com/roles/1234 --resume resume.pdf
-```
-
-**Manual — copy the prompt**
-Open [PROMPT.md](./PROMPT.md), paste it into any Claude conversation, fill in your JD and resume. Works on Claude Pro with no API key.
+| How you work | What to do |
+|---|---|
+| Claude Code (terminal) | Install the slash command — one curl, then `/rolefit <url>` |
+| Claude desktop app (Cowork) | Install the `.skill` file, then `/rolefit <url>` |
+| Terminal without Claude | `npx rolefit --jd <url> --resume resume.pdf` |
 
 ---
 
-## Install — Claude App (slash command)
+## Install — Claude Code (terminal slash command)
 
-Install RoleFit as a Claude skill so you can trigger it with `/rolefit` in any conversation.
+Run this one command in your terminal:
+
+```bash
+mkdir -p ~/.claude/commands && \
+  curl -fsSL https://raw.githubusercontent.com/yeluru/prep-right/main/.claude/commands/rolefit.md \
+    -o ~/.claude/commands/rolefit.md && \
+  curl -fsSL https://raw.githubusercontent.com/yeluru/prep-right/main/references/master-prompt.md \
+    -o ~/.claude/commands/rolefit-prompt.md
+```
+
+Restart Claude Code, then use it from any directory:
+
+```
+/rolefit https://jobs.stripe.com/roles/director-of-engineering
+```
+*(attach your resume.pdf to the same message)*
+
+No API key needed. Claude Code handles all authentication.
+
+---
+
+## Install — Claude Desktop App (Cowork skill)
 
 **Step 1 — Download the skill file**
-
-Go to [Releases](https://github.com/yeluru/prep-right/releases/latest) and download `rolefit.skill`. Or with curl:
 
 ```bash
 curl -L https://github.com/yeluru/prep-right/releases/latest/download/rolefit.skill \
   -o rolefit.skill
 ```
+
+Or download it manually from the [Releases page](https://github.com/yeluru/prep-right/releases/latest).
 
 **Step 2 — Install in Claude**
 
 - Open the Claude desktop app
 - Go to **Settings → Skills**
 - Click **Install skill from file**
-- Select `rolefit.skill`
+- Select the `rolefit.skill` file
 - Click **Install**
 
 **Step 3 — Use it**
 
-In any Claude conversation:
 ```
-/rolefit https://company.com/careers/the-role
+/rolefit https://company.com/careers/the-role-you-want
 ```
-Attach your resume file (PDF or DOCX) to the same message. Claude confirms the role, then spends 15-20 minutes researching the company, scoring your fit, generating charts, and building the full Word document.
-
-**Requirements for slash command:**
-- Claude Pro or Max subscription ($20+/month)
-- Claude desktop app (Cowork or Claude Code)
-- No API key needed — uses your existing Claude subscription
+Attach your resume file (PDF or DOCX) to the same message. No API key needed.
 
 ---
 
-## Install — npx (Terminal)
+## Install — npx (no Claude required)
 
-Run RoleFit from your terminal without installing anything globally.
+For users who don't have Claude Code or the Claude desktop app. Requires Node.js 18+ and an Anthropic API key.
 
-**Step 1 — Get an Anthropic API key**
+**Step 1 — Get an API key**
 
-Sign up at [console.anthropic.com](https://console.anthropic.com). A full guide run costs roughly $1.50-3.00 on Opus or $0.30-0.60 on Sonnet.
+Sign up at [console.anthropic.com](https://console.anthropic.com). A full guide run costs roughly $1.50–3.00 in API credits.
 
-**Step 2 — Set the key**
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-api03-...
-```
-
-To make this permanent:
-```bash
-echo 'export ANTHROPIC_API_KEY=sk-ant-api03-...' >> ~/.zshrc && source ~/.zshrc
-# or for bash:
-echo 'export ANTHROPIC_API_KEY=sk-ant-api03-...' >> ~/.bashrc && source ~/.bashrc
-```
-
-**Step 3 — Run**
+**Step 2 — Run**
 
 ```bash
 npx rolefit --jd https://jobs.stripe.com/roles/1234 --resume resume.pdf
 ```
 
-Python 3 and pip are required for chart generation and PDF/DOCX parsing — installed automatically on first run if missing.
+If `ANTHROPIC_API_KEY` is not set, you will be prompted to enter it interactively.
 
-**All options:**
+To set it permanently:
+```bash
+echo 'export ANTHROPIC_API_KEY=sk-ant-api03-...' >> ~/.zshrc && source ~/.zshrc
+```
+
+---
+
+## All CLI Options
 
 ```
 npx rolefit [options]
 
-  -j, --jd <url|file>    Job posting URL or path to a .txt file with the JD
-  -r, --resume <file>    Resume file (.pdf, .docx, or .txt)
-  -o, --out <file>       Output path  [default: ./rolefit-guide.docx]
-  -q, --quick            10-page essential guide (faster, lower cost)
-  -m, --model <id>       Claude model  [default: claude-opus-4-6]
-  -h, --help             Show help
+  -j, --jd <url|file|text>   Job posting URL, path to a JD text file,
+                              or raw job description text pasted inline
+  -r, --resume <file|text>   Your resume (.pdf, .docx, .txt) or pasted text
+  -o, --out <file>           Output file path  [default: ./rolefit-guide.docx]
+  -q, --quick                10-page essential guide (faster, lower cost)
+  -m, --model <id>           Claude model  [default: claude-opus-4-6]
+  -h, --help                 Show this help
 ```
 
 **Examples:**
 
 ```bash
-# LinkedIn job posting + PDF resume
-npx rolefit --jd https://linkedin.com/jobs/view/3826491234 --resume cv.pdf
+# Job URL + resume file
+npx rolefit --jd https://jobs.stripe.com/roles/1234 --resume resume.pdf
 
-# Greenhouse job board + DOCX resume
-npx rolefit --jd https://boards.greenhouse.io/stripe/jobs/5432 --resume resume.docx
+# Pasted job description text
+npx rolefit --jd "Senior Engineer, 5+ yrs Go, distributed systems..." --resume resume.pdf
 
-# Lever job board
-npx rolefit --jd https://jobs.lever.co/figma/abc123 --resume resume.pdf
-
-# Quick 10-page version when time is short
+# Quick 10-page version
 npx rolefit --jd https://... --resume resume.pdf --quick --out quick-guide.docx
 
-# Use Sonnet for lower cost (still very good)
-npx rolefit --jd https://... --resume resume.pdf --model claude-sonnet-4-6
-
-# Interactive mode — prompts you for everything
+# Interactive mode — prompts for everything
 npx rolefit
 ```
 
-**Supported job posting platforms:**
-
-| Platform | Example URL pattern |
-|---|---|
-| LinkedIn | `linkedin.com/jobs/view/...` |
-| Greenhouse | `boards.greenhouse.io/company/jobs/...` |
-| Lever | `jobs.lever.co/company/...` |
-| Workday | `company.wd5.myworkdayjobs.com/...` |
-| Company career pages | Most static pages work |
-
-If a URL requires login or returns a blank page, save the JD as a `.txt` file and pass it with `--jd jd.txt`.
-
-**Requirements for npx:**
-- Node.js 18+ — [nodejs.org](https://nodejs.org)
-- Python 3 + pip — [python.org](https://python.org/downloads)
-- Anthropic API key — [console.anthropic.com](https://console.anthropic.com)
-
 ---
 
-## What the Guide Produces
+## What You Get
 
-Every run generates a richly formatted Word document with the following sections in order:
+A single `.docx` file with:
 
 | Section | What It Contains |
 |---|---|
-| Cover Page | Role, company, candidate name, date |
+| Cover Page | Role title, company, candidate name, date |
 | Preface | Plain-English explanation of the role and how to use the guide |
-| Job Description | Full JD reproduced verbatim for reference |
-| Company Intelligence Brief | Live-researched facts, Glassdoor interview intel, engineering blog insights |
-| Competitive Context | Who you are competing against and exactly how you compare |
-| Decode the Role | What the company is actually trying to solve by hiring this person |
-| Fit Analysis | Honest scoring table + blunt gap briefings with preparation plans |
+| Job Description | Full JD reproduced verbatim from the posting |
+| Company Intelligence Brief | Live research: mission, Glassdoor interview intel, engineering blog |
+| Competitive Context | Who you are competing against and how you compare |
+| Decode the Role | What problem the company is actually trying to solve |
+| Fit Analysis | Scoring table + Gap Briefing blocks for every score 7 or below |
 | 8 Knowledge Domains | Concepts, analogies, data points, and exact opening frames |
-| Story Arsenal | 8 CERT story cards drawn from your real background |
+| Story Arsenal | 8 CERT story cards drawn from your actual background |
 | Mock Q&A | Tell me about yourself + 12 model answers across 3 interview layers |
-| 30-60-90 Day Vision | Phase plan with milestone table and timeline visual |
-| Questions to Ask | 5-8 high-leverage questions per interview layer with reasoning |
-| The Hard Questions | Why leaving, failures, weaknesses, objection handling |
-| Multi-Round Strategy | Round-by-round guide for 4-6 round interview processes |
-| Post-Interview Strategy | Follow-up notes, silence handling, offer negotiation, rejection response |
-| Closing | Honest assessment of what you now have going into the room |
+| 30-60-90 Day Vision | Phase plan with milestone table and Gantt timeline chart |
+| Questions to Ask | 5-8 high-leverage questions per interview layer |
+| The Hard Questions | Why leaving, biggest failure, weaknesses, objection handling |
+| Multi-Round Strategy | Round-by-round guide for 4-6 round processes |
+| Post-Interview Strategy | Follow-up notes, silence handling, offer negotiation |
+| Closing | Honest assessment of where you stand |
 | Interview Day Reference Card | One page. Dark navy. Read it in 5 minutes. Walk in ready. |
 
-**15 visual elements:** radar chart, compensation benchmark chart, 30-60-90 timeline, fit scoring table with color-coded gaps, CERT story card tables, competitive landscape comparison table, domain summary table, and more.
+15 visual elements generated fresh for every run: radar chart, compensation benchmark, 30-60-90 timeline, fit scoring table with color-coded gaps, competitive landscape table, CERT story cards, domain summary table, and more.
 
-**Estimated run time:** 15-25 minutes. The tool is doing real work — live web research, chart generation in Python, and full document assembly in Node.js.
+**Estimated run time:** 15-25 minutes.
 
 ---
 
 ## What Makes the Gap Analysis Different
 
-Most AI prep guides are encouraging to the point of uselessness. RoleFit is not.
+Most AI prep tools are encouraging to the point of uselessness. RoleFit is not.
 
-For every requirement scored 7 or below, the guide generates a **Gap Briefing Block** with four elements:
+For every requirement scored 7 or below, the guide generates a **Gap Briefing Block**:
 
-**1. The Blunt Assessment**
-What is missing and why it will hurt in this specific interview. No softening. No "there is an opportunity to develop." If the gap will end your candidacy in the first five minutes, it says so.
-
-**2. The Specific Preparation Plan**
-Sequenced, concrete steps to close the gap before the interview. Named resources. Priority order. One-to-two week time constraint. Not a reading list — a plan.
-
-**3. The Bridge Story**
-The closest experience in your actual background that addresses the gap, plus the exact framing to use when the interviewer probes it.
-
-**4. The Interview Landmine**
-The single most dangerous question this gap exposes, written as the interviewer would ask it, with a model answer that is honest without being self-defeating.
+- **The Blunt Assessment** — what is missing and why it will hurt in this specific interview
+- **The Preparation Plan** — a sequenced, concrete plan for closing the gap before the interview
+- **The Bridge Story** — the closest experience in your background, with exact framing
+- **The Interview Landmine** — the most dangerous question this gap exposes, with a model answer
 
 ---
 
-## Which Path Is Right for You
+## Supported Job Posting URLs
 
-| | Free Claude | Claude Pro/Max | Anthropic API |
+| Platform | Example URL |
+|---|---|
+| LinkedIn | `linkedin.com/jobs/view/3826491234` |
+| Greenhouse | `boards.greenhouse.io/company/jobs/5432` |
+| Lever | `jobs.lever.co/company/abc-123` |
+| Workday | `company.wd5.myworkdayjobs.com/...` |
+| Company career pages | Most static pages work; login-walled pages do not |
+
+If a URL requires a login, paste the JD text directly: `--jd "paste text here"` or pass a `.txt` file.
+
+---
+
+## Requirements
+
+| | Claude Code | Claude Desktop | npx |
 |---|---|---|---|
-| Copy-paste PROMPT.md | Works (no charts/docx) | Works fully | Works fully |
-| `/rolefit` slash command | No | Yes | No |
-| `npx rolefit` CLI | No | No | Yes |
-| Cost | Free | $20+/month | ~$1.50-3.00/run |
+| API key needed | No | No | Yes |
+| Node.js needed | No | No | 18+ |
+| Python needed | No | No | 3+ (auto-installed) |
+| Install step | 1 curl command | .skill file | none |
 
 ---
 
-## Sample Output
+## For Maintainers — Publishing
 
-Screenshots coming soon. If you use RoleFit and want to contribute a redacted sample page, open a pull request and add it to the `sample-output/` folder.
+**Update the slash command (Claude Code users):**
+```bash
+# After editing .claude/commands/rolefit.md or references/master-prompt.md:
+git add .claude/commands/rolefit.md references/master-prompt.md
+git commit -m "feat: update rolefit slash command"
+git push
+# Users re-run the install curl to get the update
+```
+
+**Publish to npm:**
+```bash
+npm version patch
+git push --follow-tags
+npm publish --access public
+```
+
+**Publish a GitHub Release (for .skill file):**
+1. Tag the release and attach `rolefit.skill` as a release asset
+2. Users download it from the Releases page or via the curl command above
 
 ---
 
 ## Contributing
 
-RoleFit improves with real-world testing across roles, industries, and interview processes. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+Found a gap in the output quality? Open an issue. Tested on a new role type? Share in Discussions. Want to propose a new section? Open a pull request.
 
-- **Found a gap in the output?** Open an issue describing what it missed.
-- **Tested on a new role type?** Share observations in Discussions.
-- **Want to suggest a new section?** Open a pull request with the proposed addition and the reasoning.
-- **Have a sample output page to share?** Add a redacted screenshot to `sample-output/`.
-
----
-
-## For Maintainers — How to Publish
-
-### Publish the npm package
-
-```bash
-# 1. Make sure you are logged in to npm
-npm login
-
-# 2. Bump version if needed (edit package.json first)
-# "version": "1.0.1"
-
-# 3. Publish
-npm publish --access public
-```
-
-After publishing, anyone can run `npx rolefit` without installing anything.
-
-### Create a GitHub Release (for the skill file)
-
-The `/rolefit` slash command install requires a `rolefit.skill` file attached to a GitHub Release.
-
-```bash
-# 1. Tag the release
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-Then on GitHub:
-- Go to **Releases → Draft a new release**
-- Select tag `v1.0.0`
-- Title: `RoleFit v1.0.0`
-- Body: paste the changelog
-- Upload `rolefit.skill` as a release asset
-- Click **Publish release**
-
-This makes the curl install command in this README work:
-```bash
-curl -L https://github.com/yeluru/prep-right/releases/latest/download/rolefit.skill \
-  -o rolefit.skill
-```
-
-### Package a new .skill file
-
-If you change SKILL.md or the references, repackage before creating a release:
-
-```bash
-# Requires Claude Code with skill-creator installed
-claude skill pack .
-# Output: rolefit.skill in the current directory
-```
-
-Or manually using the skill-creator scripts if you have them available.
-
-### Update the prompt
-
-The master prompt lives at `references/master-prompt.md`. Edit it there. The root `PROMPT.md` is kept for backward compatibility — if you update the prompt, copy the changes to both files.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ---
 
 ## License
 
-MIT License. Use it, fork it, build on it. If you make something useful from it, share it back.
+MIT — use it, fork it, build on it.
 
----
-
-## About
-
-Built and maintained by [Ravi Yeluru](https://www.linkedin.com/in/raviyeluru).
-
-Contributions, feedback, and pull requests are welcome from anyone. See [CONTRIBUTING.md](./CONTRIBUTING.md) to get started.
+Built by [Ravi Yeluru](https://www.linkedin.com/in/raviyeluru).
