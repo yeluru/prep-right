@@ -54,7 +54,7 @@ export default function ApiKeyBanner({ apiKey, setApiKey, provider, setProvider 
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 mb-6">
-      <div className={`glass rounded-xl p-4 ${isSet ? 'border-emerald-500/20' : 'border-gold-400/20 pulse-glow'}`}>
+      <div className={`glass rounded-xl p-4 relative z-50 ${isSet ? 'border-emerald-500/20' : 'border-gold-400/20 pulse-glow'}`}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           {/* Provider selector */}
           <div className="relative shrink-0">
