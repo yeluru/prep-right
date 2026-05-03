@@ -7,6 +7,7 @@ import ApiKeyBanner from './components/ApiKeyBanner.jsx';
 
 export default function App() {
   const [apiKey, setApiKey] = useState('');
+  const [provider, setProvider] = useState('gemini');
   const [isGenerating, setIsGenerating] = useState(false);
   const [markdown, setMarkdown] = useState('');
   const [progress, setProgress] = useState('');
@@ -17,7 +18,7 @@ export default function App() {
 
   const handleGenerate = useCallback(async ({ jdText, resumeText }) => {
     if (!apiKey) {
-      setError('Please enter your free Gemini API key first.');
+      setError(`Please enter your ${provider === 'gemini' ? 'Gemini' : provider === 'openai' ? 'OpenAI' : 'Claude'} API key first.`);
       return;
     }
 
@@ -39,7 +40,7 @@ export default function App() {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey, jdText, resumeText }),
+        body: JSON.stringify({ apiKey, jdText, resumeText, provider }),
         signal: controller.signal,
       });
 
@@ -93,7 +94,7 @@ export default function App() {
       }
       setIsGenerating(false);
     }
-  }, [apiKey]);
+  }, [apiKey, provider]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -112,7 +113,7 @@ export default function App() {
     <div className="min-h-screen">
       <Header />
       {!showResults && <Hero />}
-      <ApiKeyBanner apiKey={apiKey} setApiKey={setApiKey} />
+      <ApiKeyBanner apiKey={apiKey} setApiKey={setApiKey} provider={provider} setProvider={setProvider} />
       {!showResults ? (
         <InputForm onGenerate={handleGenerate} isGenerating={isGenerating} />
       ) : (

@@ -3,7 +3,7 @@
  *
  * Handles:
  *   - Resume file upload (PDF/DOCX) and text extraction
- *   - Streaming AI generation via Google Gemini (free tier)
+ *   - Streaming AI generation via Google Gemini, OpenAI, or Claude
  *   - SSE endpoint for real-time output to the frontend
  */
 
@@ -11,6 +11,8 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -84,7 +86,6 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
 // ── Build the prompt ──────────────────────────────────────────────────────────
 
 function buildPrompt(jdText, resumeText) {
-  // Adapt the master prompt for web output
   const webOutputInstructions = `
 IMPORTANT OUTPUT FORMAT INSTRUCTIONS:
 You are generating content for a beautiful web application, NOT a .docx file.
@@ -140,16 +141,71 @@ Skip any web research steps — work with the information provided.
       `THE PERSON'S BACKGROUND:\n${resumeText}`
     );
 
-  // Remove tool/web research instructions and add web output format
   prompt = webOutputInstructions + '\n\n' + prompt;
 
   return prompt;
 }
 
+// ── Provider-specific streaming generators ────────────────────────────────────
+
+async function streamGemini(apiKey, prompt, res) {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+    generationConfig: { maxOutputTokens: 65536, temperature: 0.7 },
+  });
+
+  const result = await model.generateContentStream(prompt);
+  for await (const chunk of result.stream) {
+    const text = chunk.text();
+    if (text) {
+      res.write(`data: ${JSON.stringify({ type: 'chunk', text })}\n\n`);
+    }
+  }
+}
+
+async function streamOpenAI(apiKey, prompt, res) {
+  const client = new OpenAI({ apiKey });
+  const stream = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are a world-class career coach and interview preparation expert.' },
+      { role: 'user', content: prompt },
+    ],
+    max_tokens: 16384,
+    temperature: 0.7,
+    stream: true,
+  });
+
+  for await (const chunk of stream) {
+    const text = chunk.choices[0]?.delta?.content;
+    if (text) {
+      res.write(`data: ${JSON.stringify({ type: 'chunk', text })}\n\n`);
+    }
+  }
+}
+
+async function streamClaude(apiKey, prompt, res) {
+  const client = new Anthropic({ apiKey });
+  const stream = await client.messages.stream({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 16384,
+    temperature: 0.7,
+    messages: [{ role: 'user', content: prompt }],
+    system: 'You are a world-class career coach and interview preparation expert.',
+  });
+
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      res.write(`data: ${JSON.stringify({ type: 'chunk', text: event.delta.text })}\n\n`);
+    }
+  }
+}
+
 // ── Streaming generation endpoint ─────────────────────────────────────────────
 
 app.post('/api/generate', async (req, res) => {
-  const { apiKey, jdText, resumeText, model } = req.body;
+  const { apiKey, jdText, resumeText, provider } = req.body;
 
   if (!apiKey) return res.status(400).json({ error: 'API key is required' });
   if (!jdText) return res.status(400).json({ error: 'Job description is required' });
@@ -162,27 +218,21 @@ app.post('/api/generate', async (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no');
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = model || 'gemini-2.0-flash';
-    const genModel = genAI.getGenerativeModel({
-      model: modelName,
-      generationConfig: {
-        maxOutputTokens: 65536,
-        temperature: 0.7,
-      },
-    });
-
     const prompt = buildPrompt(jdText, resumeText);
 
-    res.write(`data: ${JSON.stringify({ type: 'status', message: 'Starting generation...' })}\n\n`);
+    const providerName = provider === 'openai' ? 'OpenAI' : provider === 'claude' ? 'Claude' : 'Gemini';
+    res.write(`data: ${JSON.stringify({ type: 'status', message: `Connecting to ${providerName}...` })}\n\n`);
 
-    const result = await genModel.generateContentStream(prompt);
-
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
-      if (text) {
-        res.write(`data: ${JSON.stringify({ type: 'chunk', text })}\n\n`);
-      }
+    switch (provider) {
+      case 'openai':
+        await streamOpenAI(apiKey, prompt, res);
+        break;
+      case 'claude':
+        await streamClaude(apiKey, prompt, res);
+        break;
+      default:
+        await streamGemini(apiKey, prompt, res);
+        break;
     }
 
     res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
