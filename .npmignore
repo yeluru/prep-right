@@ -1,0 +1,5 @@
+.git/
+*.skill
+evals/
+*-workspace/
+.DS_Store

@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Microsoft Office temp files (the ~$ prefix files)
+~$*
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Personal / unrelated files
+generate_priest_note.js
+*.docx
+
+# Skill packaging output
+*.skill

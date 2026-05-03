@@ -1,0 +1,40 @@
+{
+  "name": "rolefit",
+  "version": "1.0.0",
+  "description": "Job fit analysis + interview prep guide generator. /rolefit <job-url> with attached resume.",
+  "bin": {
+    "rolefit": "./bin/rolefit.js"
+  },
+  "main": "./lib/runner.js",
+  "type": "module",
+  "files": [
+    "bin/",
+    "lib/",
+    "references/",
+    "SKILL.md",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0"
+  },
+  "keywords": [
+    "claude",
+    "interview",
+    "prep",
+    "ai",
+    "career",
+    "job-fit",
+    "fit-analysis",
+    "skill"
+  ],
+  "author": "Ravi Yeluru",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yeluru/prep-right.git"
+  },
+  "homepage": "https://github.com/yeluru/prep-right#readme"
+}

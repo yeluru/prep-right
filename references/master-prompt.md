@@ -1,8 +1,3 @@
-> **Note:** This file is kept for backward compatibility. The canonical version
-> of this prompt now lives at [`references/master-prompt.md`](./references/master-prompt.md).
-> If you are using the `/rolefit` slash command or `npx rolefit`, the prompt is
-> loaded automatically — you do not need to copy it manually.
-
 # Interview Preparation Master Prompt
 *Reusable template — paste the JD and resume, then send*
 
